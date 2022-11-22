@@ -15,6 +15,7 @@ type InsertBuilder struct {
 	StatementBuilderType
 
 	returning
+	conflictHandler
 
 	prefixes exprs
 	options  []string
@@ -135,6 +136,11 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		return
 	}
 
+	args, err = b.conflictHandler.AppendToSql(sql, args)
+	if err != nil {
+		return
+	}
+
 	if len(b.returning) > 0 {
 		args, err = b.returning.AppendToSql(sql, args)
 		if err != nil {
@@ -235,6 +241,16 @@ func (b *InsertBuilder) Columns(columns ...string) *InsertBuilder {
 // Values adds a single row's values to the query.
 func (b *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 	b.values = append(b.values, values)
+	return b
+}
+
+func (b *InsertBuilder) OnConflictKeys(targets ...string) *InsertBuilder {
+	b.conflictHandler.OnConflictKeys(targets...)
+	return b
+}
+
+func (b *InsertBuilder) DoUpdateSetKeys(keys ...string) *InsertBuilder {
+	b.conflictHandler.DoUpdateSetKeys(keys...)
 	return b
 }
 

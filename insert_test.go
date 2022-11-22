@@ -48,6 +48,22 @@ func TestInsertBuilderPlaceholders(t *testing.T) {
 	assert.Equal(t, "INSERT INTO test VALUES ($1,$2)", sql)
 }
 
+func TestInsertBuilderOnConflictDoUpdateSet(t *testing.T) {
+	b := Insert("a").
+		Columns("foo", "bar", "bee").
+		Values(1, 2, 3).
+		OnConflictKeys("foo").
+		DoUpdateSetKeys("bar", "bee")
+
+	sql, args, err := b.ToSql()
+	assert.NoError(t, err)
+
+	expectedSql := "INSERT INTO a (foo,bar,bee) VALUES (?,?,?) ON CONFLICT (foo) DO UPDATE SET bar=EXCLUDED.bar,bee=EXCLUDED.bee"
+	assert.Equal(t, expectedSql, sql)
+
+	assert.Equal(t, []interface{}{1, 2, 3}, args)
+}
+
 func TestInsertBuilderReturning(t *testing.T) {
 	b := Insert("a").
 		Columns("foo").
