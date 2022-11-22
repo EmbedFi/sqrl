@@ -139,6 +139,20 @@ func TestSelectBuilderFromValues(t *testing.T) {
 	assert.Equal(t, expectedArgs, args)
 }
 
+func TestSelectBuilderCombiners(t *testing.T) {
+	b := Select("a", "b").From("e").
+		UnionAll(Select("a", "b").From("f").Where("c = ?", 0))
+	sql, args, err := b.ToSql()
+	assert.NoError(t, err)
+
+	expectedSql := "SELECT a, b FROM e " +
+		"UNION ALL SELECT a, b FROM f WHERE c = ?"
+	assert.Equal(t, expectedSql, sql)
+
+	expectedArgs := []interface{}{0}
+	assert.Equal(t, expectedArgs, args)
+}
+
 func TestSelectBuilderToSqlErr(t *testing.T) {
 	_, _, err := Select().From("x").ToSql()
 	assert.Error(t, err)
