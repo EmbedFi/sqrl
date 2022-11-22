@@ -6,6 +6,11 @@ type StatementBuilderType struct {
 	runWith           BaseRunner
 }
 
+// With returns a WithBuilder for this StatementBuilder.
+func (b StatementBuilderType) With(alias string, expr Sqlizer) *WithBuilder {
+	return NewWithBuilder(b).With(alias, expr)
+}
+
 // Select returns a SelectBuilder for this StatementBuilder.
 func (b StatementBuilderType) Select(columns ...string) *SelectBuilder {
 	return NewSelectBuilder(b).Columns(columns...)
@@ -41,6 +46,13 @@ func (b StatementBuilderType) RunWith(runner BaseRunner) StatementBuilderType {
 // StatementBuilder is a basic statement builder, holds global configuration options
 // like placeholder format or SQL runner
 var StatementBuilder = StatementBuilderType{placeholderFormat: Question}
+
+// With returns a new WithBuilder, taking a first alias and expression
+//
+// See WithBuilder.With
+func With(alias string, expr Sqlizer) *WithBuilder {
+	return StatementBuilder.With(alias, expr)
+}
 
 // Select returns a new SelectBuilder, optionally setting some result columns.
 //

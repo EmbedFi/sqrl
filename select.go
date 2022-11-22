@@ -14,6 +14,7 @@ type SelectBuilder struct {
 	StatementBuilderType
 
 	prefixes    exprs
+	withPart    *WithBuilder
 	distinct    bool
 	options     []string
 	columns     []Sqlizer
@@ -111,6 +112,11 @@ func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		sql.WriteString(" ")
 	}
 
+	if b.withPart != nil {
+		args, _ = b.withPart.AppendToSql(sql, args)
+		sql.WriteString(" ")
+	}
+
 	sql.WriteString("SELECT ")
 
 	if b.distinct {
@@ -195,6 +201,15 @@ func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 // Prefix adds an expression to the beginning of the query
 func (b *SelectBuilder) Prefix(sql string, args ...interface{}) *SelectBuilder {
 	b.prefixes = append(b.prefixes, Expr(sql, args...))
+	return b
+}
+
+func (b *SelectBuilder) With(cte *WithBuilder) *SelectBuilder {
+	if b.withPart == nil {
+		b.withPart = cte
+	} else {
+		b.withPart = b.withPart.mergeWith(cte)
+	}
 	return b
 }
 
