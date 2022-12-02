@@ -2,32 +2,45 @@ package sqrl
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 )
 
+// withExpr helps to alias part of the query generated with underlying "expr"
+type withExpr struct {
+	alias string
+	expr  Sqlizer
+}
+
+func (e withExpr) ToSql() (sql string, args []interface{}, err error) {
+	sql, args, err = e.expr.ToSql()
+	if err == nil {
+		sql = fmt.Sprintf("%s AS (%s)", e.alias, sql)
+	}
+	return
+}
+
 type WithBuilder struct {
 	StatementBuilderType
 
-	parts map[string]Sqlizer
+	parts []withExpr
 }
 
 func NewWithBuilder(b StatementBuilderType) *WithBuilder {
 	return &WithBuilder{
 		StatementBuilderType: b,
-		parts:                make(map[string]Sqlizer),
+		parts:                make([]withExpr, 0),
 	}
 }
 
 func (b *WithBuilder) With(alias string, part Sqlizer) *WithBuilder {
-	b.parts[alias] = part
+	b.parts = append(b.parts, withExpr{alias: alias, expr: part})
 	return b
 }
 
 func (b *WithBuilder) mergeWith(other *WithBuilder) *WithBuilder {
-	for alias, part := range other.parts {
-		b.parts[alias] = part
-	}
+	b.parts = append(b.parts, other.parts...)
 	return b
 }
 
@@ -38,15 +51,15 @@ func (b *WithBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	partsStr := make([]string, 0)
 
 	var partSql string
-	var partArg []interface{}
+	var partArgs []interface{}
 
-	for alias, expr := range b.parts {
-		partSql, partArg, err = expr.ToSql()
+	for _, e := range b.parts {
+		partSql, partArgs, err = e.ToSql()
 		if err != nil {
 			return
 		}
-		partsStr = append(partsStr, alias+" AS ("+partSql+")")
-		args = append(args, partArg...)
+		partsStr = append(partsStr, partSql)
+		args = append(args, partArgs...)
 	}
 	sql.WriteString(strings.Join(partsStr, ","))
 

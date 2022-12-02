@@ -86,7 +86,7 @@ func BenchmarkSelectBuilderToSql(b *testing.B) {
 func TestSelectBuilderWithCommonTableExpressions(t *testing.T) {
 	q := With("cteone",
 		Select("a", "b").From("one").Where(Eq{"a": []string{"foo", "bar"}}),
-	).
+	).With("ctetwo", Select("a", "b").From("two")).
 		Select("c", "d", "cteone.b").
 		From("two").
 		Join("cteone on cteone.a = two.id")
@@ -94,7 +94,7 @@ func TestSelectBuilderWithCommonTableExpressions(t *testing.T) {
 	sql, args, err := q.ToSql()
 	assert.NoError(t, err)
 
-	expectedSql := "WITH cteone AS (SELECT a, b FROM one WHERE a IN (?,?)) SELECT c, d, cteone.b FROM two JOIN cteone on cteone.a = two.id"
+	expectedSql := "WITH cteone AS (SELECT a, b FROM one WHERE a IN (?,?)),ctetwo AS (SELECT a, b FROM two) SELECT c, d, cteone.b FROM two JOIN cteone on cteone.a = two.id"
 	assert.Equal(t, expectedSql, sql)
 
 	expectedArgs := []interface{}{"foo", "bar"}
