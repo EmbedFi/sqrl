@@ -24,10 +24,6 @@ func (vb *ValuesBuilder) ToSql() (sqlStr string, args []interface{}, err error) 
 	sql := &bytes.Buffer{}
 
 	sql.WriteString("VALUES ")
-	if len(vb.values) == 0 {
-		err = fmt.Errorf("values list is empty")
-		return
-	}
 
 	valuesStrings := make([]string, len(vb.values))
 	for r, row := range vb.values {

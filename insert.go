@@ -15,7 +15,7 @@ type InsertBuilder struct {
 	StatementBuilderType
 
 	returning
-	conflictHandler
+	Conflict ConflictHandler
 
 	prefixes exprs
 	options  []string
@@ -136,7 +136,7 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		return
 	}
 
-	args, err = b.conflictHandler.AppendToSql(sql, args)
+	args, err = b.Conflict.AppendToSql(sql, args)
 	if err != nil {
 		return
 	}
@@ -244,13 +244,36 @@ func (b *InsertBuilder) Values(values ...interface{}) *InsertBuilder {
 	return b
 }
 
-func (b *InsertBuilder) OnConflictKeys(targets ...string) *InsertBuilder {
-	b.conflictHandler.OnConflictKeys(targets...)
+// OnConflcit adds support for the ON CONFLICT <conflict_target> clause of the query
+
+// ON CONFLICT is a PostgreSQL specific extension
+func (b *InsertBuilder) OnConflict(conflictTargets ...string) *InsertBuilder {
+	b.Conflict.Target(conflictTargets...)
 	return b
 }
 
-func (b *InsertBuilder) DoUpdateSetKeys(keys ...string) *InsertBuilder {
-	b.conflictHandler.DoUpdateSetKeys(keys...)
+// DoNothing adds support for the DO NOTHING part of an ON CONFLICT clause
+
+// ON CONFLICT is a PostgreSQL specific extension
+func (b *InsertBuilder) DoNothing() *InsertBuilder {
+	b.Conflict.DoNothing()
+	return b
+}
+
+// DoUpdateSet adds support for the DO UPDATE SET part of an ON CONFLICT clause
+
+// ON CONFLICT is a PostgreSQL specific extension
+func (b *InsertBuilder) DoUpdateSet(exprs ...Sqlizer) *InsertBuilder {
+	b.Conflict.DoUpdateSet(exprs...)
+	return b
+}
+
+// DoUpdateSetExcluded adds support for the DO UPDATE SET part of an ON CONFLICT clause,
+// for the common use case of setting columns for the target row from the attempted insert
+
+// ON CONFLICT is a PostgreSQL specific extension
+func (b *InsertBuilder) DoUpdateSetExcluded(keys ...string) *InsertBuilder {
+	b.Conflict.DoUpdateSetExcluded(keys...)
 	return b
 }
 
